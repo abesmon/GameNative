@@ -31,6 +31,7 @@ import com.winlator.widget.InputControlsView
 import com.winlator.widget.TouchpadView
 import com.winlator.widget.XServerRendererView
 import com.winlator.xenvironment.XEnvironment
+import com.winlator.xenvironment.components.XServerComponent
 import timber.log.Timber
 import dagger.hilt.android.HiltAndroidApp
 
@@ -238,6 +239,9 @@ class PluviaApp : SplitCompatApplication() {
                 .onFailure { Timber.e(it, "shutdownEnvironment: releasePointerCapture") }
             runCatching { env?.stopEnvironmentComponents() }
                 .onFailure { Timber.e(it, "shutdownEnvironment: stopEnvironmentComponents") }
+            runCatching {
+                env?.getComponent(XServerComponent::class.java)?.closeXServer()
+            }.onFailure { Timber.e(it, "shutdownEnvironment: close XServer extensions") }
 
             xEnvironment = null
             inputControlsView = null

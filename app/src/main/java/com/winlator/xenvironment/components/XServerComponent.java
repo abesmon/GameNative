@@ -41,4 +41,8 @@ public class XServerComponent extends EnvironmentComponent {
     public XServer getXServer() {
         return xServer;
     }
+
+    public void closeXServer() {
+        xServer.closeExtensions();
+    }
 }

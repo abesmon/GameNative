@@ -60,7 +60,7 @@ public class PresentExtension implements Extension {
     private volatile boolean choreographerChecked = false;
     private final Object choreographerLock = new Object();
 
-    private Thread cpuPacerThread = null;
+    private volatile Thread cpuPacerThread = null;
     private final java.util.concurrent.PriorityBlockingQueue<PendingIdle> cpuQueue =
             new java.util.concurrent.PriorityBlockingQueue<>(11,
                     java.util.Comparator.comparingLong(p -> p.targetNs));
@@ -72,10 +72,23 @@ public class PresentExtension implements Extension {
     }
 
     public void close() {
-        if (cpuPacerThread != null) {
-            cpuPacerThread.interrupt();
-            cpuPacerThread = null;
+        Thread thread = cpuPacerThread;
+        cpuPacerThread = null;
+        if (thread != null) {
+            thread.interrupt();
+            java.util.concurrent.locks.LockSupport.unpark(thread);
         }
+
+        if (choreographer != null && choreographerPosted) {
+            choreographer.removeFrameCallback(vsyncCallback);
+        }
+        choreographerPosted = false;
+        choreographer = null;
+        choreographerChecked = false;
+
+        cpuQueue.clear();
+        pendingIdles.clear();
+        windowTimings.clear();
     }
 
     private android.view.Choreographer tryGetChoreographer(VulkanRenderer renderer) {
@@ -103,7 +116,7 @@ public class PresentExtension implements Extension {
             while (!Thread.interrupted()) {
                 PendingIdle p = cpuQueue.peek();
                 if (p == null) {
-                    java.util.concurrent.locks.LockSupport.parkNanos(500_000L);
+                    java.util.concurrent.locks.LockSupport.park();
                     continue;
                 }
                 long now = System.nanoTime();
@@ -182,6 +195,10 @@ public class PresentExtension implements Extension {
             postChoreographerCallback();
         } else {
             cpuQueue.offer(new PendingIdle(window, pixmap, serial, idleFence, fireTime, 0));
+            Thread thread = cpuPacerThread;
+            if (thread != null) {
+                java.util.concurrent.locks.LockSupport.unpark(thread);
+            }
         }
     }
 

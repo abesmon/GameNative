@@ -284,6 +284,12 @@ public class XServer {
         return (T)extensions.get(opcode);
     }
 
+    public void closeExtensions() {
+        for (int i = 0; i < extensions.size(); i++) {
+            extensions.valueAt(i).close();
+        }
+    }
+
     public synchronized void setGrabbed(boolean grabbed, XClient client) {
         this.isGrabbed = grabbed;
         this.grabbingClient = client;
