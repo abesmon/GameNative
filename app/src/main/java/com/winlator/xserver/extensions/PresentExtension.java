@@ -341,7 +341,11 @@ public class PresentExtension implements Extension {
         Window window = client.xServer.windowManager.getWindow(windowId);
         if (window == null) throw new BadWindow(windowId);
 
-        if (GPUImage.isSupported() && !mask.isEmpty()) {
+        // Modern Mesa subscribes to Present events for its software WSI path.
+        // SelectInput must not replace VulkanRenderer's CPU-backed window storage.
+        if (!(client.xServer.getRenderer() instanceof VulkanRenderer) &&
+                GPUImage.isSupported() &&
+                !mask.isEmpty()) {
             Drawable content = window.getContent();
             final Texture oldTexture = content.getTexture();
             if (oldTexture != null && !(oldTexture instanceof GPUImage)) {
