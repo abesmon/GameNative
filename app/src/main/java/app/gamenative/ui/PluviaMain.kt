@@ -560,15 +560,12 @@ fun PluviaMain(
                                 if (currentRoute == PluviaScreen.LoginUser.route) {
                                     navController.navigateFromLoginIfNeeded(targetRoute, "LogonEnded")
                                 } else if (currentRoute == PluviaScreen.Home.route + "?offline={offline}") {
-                                    val isCurrentlyOffline = navController.currentBackStackEntry
-                                        ?.arguments?.getBoolean("offline") ?: false
-                                    if (isCurrentlyOffline) {
-                                        navController.navigate(PluviaScreen.Home.route + "?offline=false") {
-                                            popUpTo(PluviaScreen.Home.route + "?offline={offline}") {
-                                                inclusive = true
-                                            }
-                                        }
-                                    }
+                                    // Flip the offline flag in place. Re-navigating to
+                                    // Home?offline=false would pop this back stack entry and destroy
+                                    // LibraryViewModel, rebuilding the whole library from scratch —
+                                    // ~10s of extra work. Fresh post-login data reaches the library
+                                    // on its own through the Room flows it already collects.
+                                    viewModel.setOffline(false)
                                 }
                             }
                         }
@@ -1341,12 +1338,18 @@ fun PluviaMain(
                         },
                     ),
                 ) { backStackEntry ->
-                    val isOffline = backStackEntry.arguments?.getBoolean("offline") ?: false
+                    // The nav arg only seeds the flag; from then on LogonEnded flips it in place so
+                    // going online doesn't require re-navigating (and rebuilding) this destination.
+                    val navOffline = backStackEntry.arguments?.getBoolean("offline") ?: false
+                    LaunchedEffect(navOffline) {
+                        viewModel.setOffline(navOffline && !SteamService.isLoggedIn)
+                    }
+                    val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
 
                     // Show update/crash/support dialogs when Home is first displayed
                     // Skip when offline with Steam credentials (avoid flash when Steam reconnects)
                     LaunchedEffect(Unit) {
-                        val shouldShowDialogs = !isOffline || !SteamUtils.hasStoredCredentials()
+                        val shouldShowDialogs = !navOffline || !SteamUtils.hasStoredCredentials()
 
                         if (shouldShowDialogs && !state.annoyingDialogShown && PluviaApp.xEnvironment == null && !SteamService.keepAlive && !MainActivity.wasLaunchedViaExternalIntent) {
                             val currentUpdateInfo = updateInfo

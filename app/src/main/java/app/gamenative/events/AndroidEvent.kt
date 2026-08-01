@@ -26,6 +26,14 @@ interface AndroidEvent<T> : Event<T> {
     data class LibraryInstallStatusChanged(val appId: Int, val source: GameSource) : AndroidEvent<Unit>
     data class CustomGameImagesFetched(val appId: String) : AndroidEvent<Unit>
     data object RecommendationToggleChanged : AndroidEvent<Unit>
+
+    /**
+     * Emitted once the inputs the library uses to decide app ownership have settled after logon:
+     * the account id and, when the account belongs to a family group, the family member list (which
+     * needs an extra network round-trip). Neither is backed by a flow, so the library has no other
+     * way to know it should re-filter.
+     */
+    data object LibraryOwnershipResolved : AndroidEvent<Unit>
     data class GOGAuthCodeReceived(val authCode: String) : AndroidEvent<Unit>
     data class EpicAuthCodeReceived(val authCode: String) : AndroidEvent<Unit>
     data object ServiceReady : AndroidEvent<Unit>

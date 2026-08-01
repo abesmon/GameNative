@@ -3805,7 +3805,13 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 familyGroupMembers.add(accountID)
                             }
                         }
+                    }.invokeOnCompletion {
+                        // Only now are the ownership inputs complete, however it turned out — the
+                        // library filters on them and has no flow to learn about it otherwise.
+                        PluviaApp.events.emit(AndroidEvent.LibraryOwnershipResolved)
                     }
+                } else {
+                    PluviaApp.events.emit(AndroidEvent.LibraryOwnershipResolved)
                 }
 
                 picsChangesCheckerJob = continuousPICSChangesChecker()

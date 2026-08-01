@@ -109,6 +109,14 @@ class LibraryViewModel @Inject constructor(
         refreshRecommendationHero()
     }
 
+    // Ownership inputs read by onFilterApps (SteamService.familyMembers,
+    // PrefManager.steamUserAccountId) settle only after logon, and neither is backed by a flow.
+    // One re-filter here replaces the old approach of tearing down and rebuilding this whole
+    // ViewModel on the post-login navigation.
+    private val onOwnershipResolved: (AndroidEvent.LibraryOwnershipResolved) -> Unit = {
+        onFilterApps(paginationCurrentPage)
+    }
+
     // How many items loaded on one page of results
     @Volatile private var paginationCurrentPage: Int = 0
     @Volatile private var lastPageInCurrentFilter: Int = 0
@@ -275,6 +283,7 @@ class LibraryViewModel @Inject constructor(
         PluviaApp.events.on<AndroidEvent.LibraryInstallStatusChanged, Unit>(onInstallStatusChanged)
         PluviaApp.events.on<AndroidEvent.CustomGameImagesFetched, Unit>(onCustomGameImagesFetched)
         PluviaApp.events.on<AndroidEvent.RecommendationToggleChanged, Unit>(onRecommendationToggleChanged)
+        PluviaApp.events.on<AndroidEvent.LibraryOwnershipResolved, Unit>(onOwnershipResolved)
 
         refreshRecommendationHero()
     }
@@ -310,6 +319,7 @@ class LibraryViewModel @Inject constructor(
         PluviaApp.events.off<AndroidEvent.LibraryInstallStatusChanged, Unit>(onInstallStatusChanged)
         PluviaApp.events.off<AndroidEvent.CustomGameImagesFetched, Unit>(onCustomGameImagesFetched)
         PluviaApp.events.off<AndroidEvent.RecommendationToggleChanged, Unit>(onRecommendationToggleChanged)
+        PluviaApp.events.off<AndroidEvent.LibraryOwnershipResolved, Unit>(onOwnershipResolved)
         super.onCleared()
     }
 
