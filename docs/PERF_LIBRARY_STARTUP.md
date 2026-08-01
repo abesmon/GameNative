@@ -253,3 +253,15 @@ Ordered so each step is independently reviewable and mergeable.
 | C | Lazy `sizeBytes`, batched installed-app lookup, precomputed dir names | §4 | ~2 s → a few hundred ms per pass |
 | D | Projection query for the library list | §5 | removes the JSON decode and the GC storm |
 | E | Measure on release / force dexopt / baseline profile | §6 | multiplier on everything above |
+
+### Working agreement
+
+This branch is an **accumulator**. Every stage lands as its own commit, and each commit must stand
+on its own — it must make sense and work without any later commit. Verbose comments and extended
+documentation (including this file) are welcome here; they record why a change looks the way it
+does while the work is still in flight.
+
+The upstream PRs are cut later, as **separate branches carrying code only** — no explanatory
+comments, no docs. Write each fix so that stripping the commentary leaves working, reviewable code:
+never put load-bearing information in a comment, and keep the code diff itself as small as the fix
+allows. Small self-contained diffs are what gets merged.
