@@ -15,7 +15,7 @@ object ManifestRepository {
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun loadManifest(context: Context): ManifestData {
-        if (BuildConfig.DEBUG) {
+        if (BuildConfig.DEV_BUILD) {
             readLocalManifest(context)?.let {
                 Timber.i("ManifestRepository: using local debug manifest")
                 return it

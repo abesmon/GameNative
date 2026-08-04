@@ -31,7 +31,7 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
-// Debug-only: package the repo's manifest.json so debug builds read it locally (never in release).
+// Dev-only: package the repo's manifest.json so dev builds read it locally (never in release).
 val copyDebugManifest by tasks.registering(Copy::class) {
     from(rootProject.file("manifest.json"))
     into(layout.buildDirectory.dir("generated/debugManifest"))
@@ -68,6 +68,12 @@ android {
         versionName = "1.1.1"
 
         buildConfigField("boolean", "GOLD", "false")
+
+        // "This is a build made for a developer, not for users." Unlike BuildConfig.DEBUG it is
+        // not tied to `debuggable`, so the non-debuggable `debugFast` type keeps dev logging,
+        // the local manifest and the dev API host. See the debugFast build type below.
+        buildConfigField("boolean", "DEV_BUILD", "false")
+
         fun secret(name: String) =
             project.findProperty(name) as String? ?: System.getenv(name) ?: ""
 
@@ -167,6 +173,20 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("boolean", "DEV_BUILD", "true")
+        }
+        // Same as debug, but can't be debuged properly (no breakpoints and stuff), 
+        // but Compose a lot faster than simple debug, so you can debug and get logs, 
+        // when you need fast debug builds
+        create("debugFast") {
+            initWith(getByName("debug"))
+            matchingFallbacks += listOf("debug")
+            isDebuggable = false
+            isProfileable = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("boolean", "DEV_BUILD", "true")
         }
         release {
             isMinifyEnabled = true
@@ -269,6 +289,9 @@ android {
             }
         }
         getByName("debug") {
+            assets.srcDir(copyDebugManifest)
+        }
+        getByName("debugFast") {
             assets.srcDir(copyDebugManifest)
         }
     }

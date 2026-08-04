@@ -28,6 +28,12 @@ android {
     }
 
     buildTypes {
+        // Dynamic features have to declare every build type the base app declares.
+        create("debugFast") {
+            initWith(getByName("debug"))
+            // Has to match the base app, which drops the flag to get release-like ART codegen.
+            isDebuggable = false
+        }
         create("release-signed") {
             initWith(getByName("release"))
         }

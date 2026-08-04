@@ -206,7 +206,7 @@ public abstract class ProcessHelper {
         try {
             if (BuildConfig.MODERN_ANDROID) command = "/system/bin/linker64 " + command;
 
-            if (BuildConfig.DEBUG) {
+            if (BuildConfig.DEV_BUILD) {
                 Log.d("ProcessHelper", "Executing with output: " + Arrays.toString(splitCommand(command)) + ", " + Arrays.toString(envp) + ", " + workingDir);
             }
 
@@ -306,7 +306,7 @@ public abstract class ProcessHelper {
         try {
             if (BuildConfig.MODERN_ANDROID) command = "/system/bin/linker64 " + command;
 
-            if (BuildConfig.DEBUG) {
+            if (BuildConfig.DEV_BUILD) {
                 Log.d("ProcessHelper", "Executing: " + Arrays.toString(splitCommand(command)) + ", " + Arrays.toString(envp) + ", " + workingDir);
             }
 
@@ -339,7 +339,7 @@ public abstract class ProcessHelper {
         try {
             if (BuildConfig.MODERN_ANDROID) command = "/system/bin/linker64 " + command;
 
-            if (BuildConfig.DEBUG) {
+            if (BuildConfig.DEV_BUILD) {
                 Log.d("ProcessHelper", "Executing: " + Arrays.toString(splitCommand(command)) + ", " + Arrays.toString(envp) + ", " + workingDir);
             }
 

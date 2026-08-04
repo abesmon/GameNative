@@ -54,7 +54,8 @@ class PluviaApp : SplitCompatApplication() {
 
         preloadSystemLibraries()
 
-        // Allows to find resource streams not closed within GameNative and JavaSteam
+        // Allows to find resource streams not closed within GameNative and JavaSteam.
+        // Tracking every Closeable is expensive, so this stays on the full debug build only.
         if (BuildConfig.DEBUG) {
             StrictMode.setVmPolicy(
                 StrictMode.VmPolicy.Builder()
@@ -62,7 +63,9 @@ class PluviaApp : SplitCompatApplication() {
                     .penaltyLog()
                     .build(),
             )
+        }
 
+        if (BuildConfig.DEV_BUILD) {
             Timber.plant(Timber.DebugTree())
         } else {
             Timber.plant(ReleaseTree())

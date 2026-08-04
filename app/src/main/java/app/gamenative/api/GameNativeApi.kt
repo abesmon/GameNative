@@ -14,7 +14,7 @@ import java.io.IOException
 object GameNativeApi {
 
     val BASE_URL: String =
-        if (BuildConfig.DEBUG) "http://10.0.2.2:8787" else "https://api.gamenative.app"
+        if (BuildConfig.DEV_BUILD) "http://10.0.2.2:8787" else "https://api.gamenative.app"
 
     val httpClient: OkHttpClient = Net.http
 

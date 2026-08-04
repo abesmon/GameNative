@@ -18,7 +18,7 @@ import java.util.EnumSet
  * Fata data for Compose previewing.
  */
 internal fun fakeAppInfo(idx: Int): SteamApp {
-    if (!BuildConfig.DEBUG) {
+    if (!BuildConfig.DEV_BUILD) {
         throw RuntimeException("Fake app info shouldn't be used in release")
     }
 
