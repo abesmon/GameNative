@@ -1300,6 +1300,12 @@ object PrefManager {
             setPref(CUSTOM_GAME_MANUAL_FOLDERS, Json.encodeToString(value))
         }
 
+    // Detailed per-step reporting on the boot splash; off means the plain indeterminate bar
+    private val VERBOSE_BOOT_PROGRESS = booleanPreferencesKey("verbose_boot_progress")
+    var verboseBootProgress: Boolean
+        get() = getPref(VERBOSE_BOOT_PROGRESS, false)
+        set(value) = setPref(VERBOSE_BOOT_PROGRESS, value)
+
     // Add new setting for Wine debug logging
     private val ENABLE_WINE_DEBUG = booleanPreferencesKey("enable_wine_debug")
     var enableWineDebug: Boolean
