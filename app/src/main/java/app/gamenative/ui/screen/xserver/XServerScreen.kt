@@ -110,6 +110,7 @@ import app.gamenative.ui.component.QuickMenuAction
 import app.gamenative.ui.component.SteamInviteState
 import app.gamenative.ui.component.parseBooleanExtra
 import app.gamenative.utils.BionicFgManager
+import app.gamenative.utils.BootProgress
 import app.gamenative.ui.component.parsePositiveFpsLimit
 import app.gamenative.ui.data.PerformanceHudConfig
 import app.gamenative.ui.data.PerformanceHudSize
@@ -2062,6 +2063,7 @@ fun XServerScreen(
 
                     setupExecutor.submit {
                         try {
+                            BootProgress.start()
                             val containerManager = ContainerManager(context)
                             // Configure WinHandler with container's input API settings
                             val handler = getxServer().winHandler
@@ -2143,6 +2145,7 @@ fun XServerScreen(
                             Timber.i("Doing things once")
                             val envVars = EnvVars()
 
+                            BootProgress.phase(BootProgress.Phase.WINE_FILES)
                             runBlocking {
                                 setupWineSystemFiles(
                                     context,
@@ -2159,6 +2162,7 @@ fun XServerScreen(
                             extractArm64ecInputDLLs(context, container) // REQUIRED: Uses updated xinput1_3 main.c from x86_64 build, prevents crashes with 3+ players, avoids need for input shim dlls.
                             extractx86_64InputDlls(context, container)
 
+                            BootProgress.phase(BootProgress.Phase.GRAPHICS)
                             runBlocking {
                                 extractGraphicsDriverFiles(
                                     context,
@@ -3526,6 +3530,7 @@ private fun setupXEnvironment(
     onGameLaunchError: ((String) -> Unit)? = null,
     offline: Boolean = false
 ): XEnvironment {
+    BootProgress.phase(BootProgress.Phase.ENVIRONMENT)
     ProcessHelper.hardKillStaleWineProcesses()
 
     val gameSource = ContainerUtils.extractGameSourceFromContainerId(appId)
@@ -3715,9 +3720,9 @@ private fun setupXEnvironment(
                 onError = onGameLaunchError
             )
             if (preInstallCommands.isNotEmpty()) {
-                PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Installing prerequisites..."))
+                BootProgress.phase(BootProgress.Phase.PREREQS, "1/${preInstallCommands.size}")
             } else {
-                PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Launching game..."))
+                BootProgress.phase(BootProgress.Phase.LAUNCH)
             }
         }
 
@@ -3814,9 +3819,10 @@ private fun setupXEnvironment(
             }
             val nextRemaining = remaining.drop(1)
             if (nextRemaining.isEmpty()) {
-                PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Launching game..."))
+                BootProgress.phase(BootProgress.Phase.LAUNCH)
             } else {
-                PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Installing prerequisites..."))
+                val step = preInstallCommands.size - nextRemaining.size + 1
+                BootProgress.phase(BootProgress.Phase.PREREQS, "$step/${preInstallCommands.size}")
             }
             chainPreInstallSteps(nextRemaining)
             guestProgramLauncherComponent.start()
@@ -4595,7 +4601,9 @@ private fun unpackExecutableFile(
     var output = StringBuilder()
     if (needsUnpacking || containerVariantChanged){
         try {
-            PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Installing Mono..."))
+            BootProgress.phase(BootProgress.Phase.MONO)
+            // msiexec reports nothing back, so track the prefix directory it writes into instead.
+            BootProgress.watchOutput(File(imageFs.wineprefix, "drive_c/windows/mono"))
             val monoCmd = "wine msiexec /i Z:\\opt\\mono-gecko-offline\\wine-mono-11.0.0-x86.msi && wineserver -k"
             Timber.i("Install mono command $monoCmd")
             val monoOutput = guestProgramLauncherComponent.execShellCommand(monoCmd)
@@ -4625,7 +4633,7 @@ private fun unpackExecutableFile(
         val rootDir: File = imageFs.getRootDir()
 
         try {
-            PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Handling DRM..."))
+            BootProgress.phase(BootProgress.Phase.DRM, "reading interfaces")
             // a:/.../GameDir/orig_dll_path.txt  (same dir as the EXE inside A:)
             val origTxtFile  = File("${imageFs.wineprefix}/dosdevices/a:/orig_dll_path.txt")
 
@@ -4689,11 +4697,12 @@ private fun unpackExecutableFile(
             if (exePaths.isEmpty()) {
                 Timber.w("No executable path set, skipping Steamless")
             } else {
-                PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Handling DRM..."))
+                BootProgress.phase(BootProgress.Phase.DRM)
                 for ((index, executablePath) in exePaths.withIndex()) {
-                    if (exePaths.size > 1) {
-                        PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Handling DRM (${index + 1}/${exePaths.size})"))
-                    }
+                    BootProgress.update(
+                        index.toFloat() / exePaths.size,
+                        "${index + 1}/${exePaths.size}: ${extractExecutableBasename(executablePath)}",
+                    )
                     var batchFile: File? = null
                     try {
                         // Normalize path: use forward slashes for Unix format, backslashes for Windows
@@ -4899,7 +4908,7 @@ private suspend fun setupWineSystemFiles(
 
             // Download or use cached/bundled openal component
             val openalFile = WinComponentDownloader.ensureWinComponentAvailable(context, "openal") { progress ->
-                Timber.d("Downloading openal component: ${(progress * 100).toInt()}%")
+                BootProgress.download("OpenAL", progress)
             }
 
             if (openalFile == null) {
@@ -5023,7 +5032,7 @@ private suspend fun extractGraphicsDriverComponent(
     onExtractFileListener: OnExtractFileListener? = null
 ) {
     val componentFile = GraphicsDriverDownloader.ensureGraphicsDriverAvailable(context, componentId) { progress ->
-        Timber.d("Downloading graphics driver $componentId: ${(progress * 100).toInt()}%")
+        BootProgress.download("graphics driver $componentId", progress)
     }
 
     if (componentFile == null) {
@@ -5059,7 +5068,7 @@ private suspend fun extractDXWrapperComponent(
     onExtractFileListener: OnExtractFileListener?
 ) {
     val componentFile = DXWrapperDownloader.ensureDXWrapperAvailable(context, componentId) { progress ->
-        Timber.d("Downloading dxwrapper $componentId: ${(progress * 100).toInt()}%")
+        BootProgress.download("dxwrapper $componentId", progress)
     }
 
     if (componentFile == null) {
@@ -5297,7 +5306,7 @@ private suspend fun extractWinComponentFiles(
                 val componentFile = WinComponentDownloader.ensureWinComponentAvailable(
                     context, identifier
                 ) { progress ->
-                    Timber.d("Downloading wincomponent $identifier: ${(progress * 100).toInt()}%")
+                    BootProgress.download("component $identifier", progress)
                 }
 
                 if (componentFile == null) {
@@ -5455,7 +5464,7 @@ private suspend fun extractGraphicsDriverFiles(
 
             // Download or get cached core driver
             val driverFile = CoreDriverDownloader.ensureCoreDriverAvailable(context, assetZip) { progress ->
-                Timber.d("Downloading core driver $assetZip: ${(progress * 100).toInt()}%")
+                BootProgress.download("core driver $assetZip", progress)
             }
 
             // Read manifest name from zip to determine folder name

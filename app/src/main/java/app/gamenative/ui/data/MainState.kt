@@ -23,6 +23,7 @@ data class MainState(
     val diagnostics: Boolean = false,
     val showBootingSplash: Boolean = false,
     val bootingSplashText: String = "Booting...",
+    val bootingSplashProgress: Float = -1f,
     val bootingSplashHeroImageUrl: String = "",
 
     // Connection state for background reconnection
