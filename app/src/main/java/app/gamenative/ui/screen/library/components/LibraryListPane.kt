@@ -182,6 +182,13 @@ internal fun LibraryListPane(
             }
     }
 
+    val scrollToStartRequest = app.gamenative.ui.util.PerfScrollHook.scrollToStartRequest
+    LaunchedEffect(scrollToStartRequest) {
+        if (scrollToStartRequest > 0) {
+            listState.scrollToItem(0)
+        }
+    }
+
     var targetOfScroll by remember { mutableIntStateOf(-1) }
     LaunchedEffect(targetOfScroll) {
         if (targetOfScroll != -1) {

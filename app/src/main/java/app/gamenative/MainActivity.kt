@@ -186,6 +186,8 @@ class MainActivity : ComponentActivity() {
 
         app.gamenative.launch.installLaunchReadiness(applicationContext, lifecycleScope)
 
+        app.gamenative.ui.util.PerfScrollHook.register(this)
+
         if (isHeadset(this)) {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             android.view.InputDevice.getDeviceIds().forEach { id ->
