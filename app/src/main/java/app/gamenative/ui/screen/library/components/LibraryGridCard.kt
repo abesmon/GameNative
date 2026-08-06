@@ -65,11 +65,14 @@ import app.gamenative.ui.data.GameCardStats
 import app.gamenative.ui.enums.PaneType
 import app.gamenative.ui.theme.PluviaTheme
 import app.gamenative.ui.util.ListItemImage
+import app.gamenative.ui.util.PerfScrollHook
 import app.gamenative.utils.CustomGameScanner
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import java.io.File
+import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /**
@@ -160,6 +163,27 @@ internal fun GridViewCard(
                 else -> null
             },
         ) {
+            // EXPERIMENT (late appear): the card first draws as a flat colour and composes its real
+            // content only after a per-card delay of 250..450ms. Two effects to measure: a fling
+            // that flies past a card never pays for that card's layout at all, and the cards that do
+            // stay land their layout on different frames instead of all on the one frame that
+            // brought them on screen. Selected at runtime by PerfScrollHook.lateAppear.
+            var contentVisible by remember(appInfo.appId, PerfScrollHook.lateAppear) {
+                mutableStateOf(!PerfScrollHook.lateAppear)
+            }
+            if (!contentVisible) {
+                LaunchedEffect(appInfo.appId) {
+                    delay(250L + 20L * Random.nextInt(0, 11))
+                    contentVisible = true
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                )
+                return@Card
+            }
+
             Box(modifier = Modifier.fillMaxSize()) {
                 // Game image (primary + optional fallback for Steam header/hero)
                 val imageUrls = if (appInfo.gameSource == GameSource.CUSTOM_GAME) {

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import timber.log.Timber
 
@@ -29,11 +30,24 @@ object PerfScrollHook {
     var scrollToStartRequest by mutableIntStateOf(0)
         private set
 
+    /**
+     * Experiment arm: grid cards draw as a flat colour first and compose their real content only
+     * after a short per-card delay. See GridViewCard.
+     *
+     *   adb shell am broadcast -a app.gamenative.PERF_FLAGS --ez lateAppear true
+     */
+    var lateAppear by mutableStateOf(false)
+        private set
+
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.getBooleanExtra("scrollToStart", false)) {
                 scrollToStartRequest++
                 Timber.tag("PerfScrollHook").i("scrollToStart #$scrollToStartRequest")
+            }
+            if (intent.hasExtra("lateAppear")) {
+                lateAppear = intent.getBooleanExtra("lateAppear", false)
+                Timber.tag("PerfScrollHook").i("lateAppear=$lateAppear")
             }
         }
     }
